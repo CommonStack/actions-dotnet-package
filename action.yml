@@ -41,11 +41,11 @@ runs:
       shell: bash
 
     - name: Pack
-      run: dotnet pack src/*/*.csproj -c Release --no-restore --no-build --include-symbols -p:SymbolPackageFormat=snupkg -o . /p:PackageVersion=${{ steps.getversion.outputs.version }}
+      run: dotnet pack -c Release --no-restore --no-build --include-symbols -p:SymbolPackageFormat=snupkg -o . /p:PackageVersion=${{ steps.getversion.outputs.version }}
       shell: bash
       if: inputs.nuget-publish == 'true'
       
     - name: Push to NuGet
-      run: dotnet nuget push *.nupkg --skip-duplicate -s https://api.nuget.org/v3/index.json -k ${{ inputs.nuget-api-key }}
+      run: dotnet nuget push src/*/*.nupkg --skip-duplicate -s https://api.nuget.org/v3/index.json -k ${{ inputs.nuget-api-key }}
       shell: bash
       if: inputs.nuget-publish == 'true'
