@@ -1,0 +1,51 @@
+name: 'NugetBuildAndPack'
+description: 'Build a dotnet solution and publish to nuget'
+inputs:
+  nuget-publish: 
+    description: 'true or false'
+    required: true
+  nuget-api-key: 
+    description: 'nuget API Key'
+    required: false
+outputs:
+  package-version:
+    description: "Nuget Package Version"
+    value: ${{ steps.getversion.outputs.version }}
+runs:
+  using: "composite"
+  steps:
+    - name: Read VERSION file
+      id: getversion
+      run: echo "::set-output name=version::$(cat VERSION).${{ github.run_number }}"
+      shell: bash
+
+    - name: Print Version
+      run: echo "Package version is ${{ steps.getversion.outputs.version }}"
+      shell: bash
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 6.0.x
+    
+    - name: Restore dependencies
+      run: dotnet restore
+      shell: bash
+    
+    - name: Build
+      run: dotnet build -c Release --no-restore
+      shell: bash
+    
+    - name: Test
+      run: dotnet test -c Release --no-restore --no-build --verbosity normal --filter "Category!=LongRunning"
+      shell: bash
+
+    - name: Pack
+      run: dotnet pack src/*/*.csproj -c Release --no-restore --no-build --include-symbols -p:SymbolPackageFormat=snupkg -o . /p:PackageVersion=${{ steps.getversion.outputs.version }}
+      shell: bash
+      if: inputs.nuget-publish == 'true'
+      
+    - name: Push to NuGet
+      run: dotnet nuget push *.nupkg --skip-duplicate -s https://api.nuget.org/v3/index.json -k ${{ inputs.nuget-api-key }}
+      shell: bash
+      if: inputs.nuget-publish == 'true'
